@@ -6,6 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:tflite/tflite.dart';
+import 'package:flutter_native_image/flutter_native_image.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,15 +40,15 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
   late double _imageWidth;
   late double _imageHeight;
   bool _busy = false;
-  double _containerHeight = 0;
+  final double _containerHeight = 0;
 
   late List _recognitions;
-  ImagePicker _picker = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
 
   late AnimationController _controller;
-  static const List<IconData> icons = const [Icons.camera_alt, Icons.image];
+  static const List<IconData> icons = [Icons.camera_alt, Icons.image];
 
-  Map<String, int> _ingredients = {};
+  final Map<String, int> _ingredients = {};
   String _selected = "";
 
   bool _isLoading = false;
@@ -69,7 +70,7 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
       });
     });
 
-    _controller = new AnimationController(
+    _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
@@ -93,6 +94,7 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
         ? await _picker.getImage(source: ImageSource.camera)
         : await _picker.getImage(source: ImageSource.gallery);
     late var image = File(pickedFile!.path);
+
     if (image == null) return;
     setState(() {
       _busy = true;
@@ -108,7 +110,7 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
     await classify(image);
 
     FileImage(image)
-        .resolve(ImageConfiguration())
+        .resolve(const ImageConfiguration())
         .addListener((ImageStreamListener((ImageInfo info, bool _) {
           setState(() {
             _imageWidth = info.image.width.toDouble();
@@ -125,12 +127,15 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
   }
 
   classify(File image) async {
+    File compressedFile = await FlutterNativeImage.compressImage(image.path,
+        quality: 80, targetWidth: 128, targetHeight: 128);
+
     var recognitions = await Tflite.runModelOnImage(
-        path: image.path, // required
-        // imageMean: 1, // defaults to 117.0
-        // imageStd: 255, // defaults to 1.0
+        path: compressedFile.path, // required
+        imageMean: 127.5, // defaults to 117.0
+        imageStd: 1.0, // defaults to 1.0
         numResults: 7, // defaults to 5
-        // threshold: 0.2, // defaults to 0.1
+        threshold: 0.01, // defaults to 0.1
         asynch: true // defaults to true
         );
     setState(() {
@@ -151,15 +156,15 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
           child: ListView(
             children: <Widget>[
               Image.file(image),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
                 child: Text('Detected Objects',
                     style:
                         TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold)),
               ),
               ListView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: _recognitions.length,
                 itemBuilder: (context, index) {
                   return Card(
@@ -179,7 +184,7 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
                             }
                           },
                           title: Text(_recognitions[index]['label'],
-                              style: TextStyle(fontSize: 16.0)),
+                              style: const TextStyle(fontSize: 16.0)),
                           subtitle: Text(
                               '${(_recognitions[index]["confidence"] * 100).toStringAsFixed(0)}%')));
                 },
@@ -199,7 +204,7 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
           SpinKitWanderingCubes(color: Theme.of(context).primaryColor),
       child: Scaffold(
           appBar: AppBar(
-            title: Text('Classify Object'),
+            title: const Text('Classify Object'),
             actions: <Widget>[
               IconButton(
                 icon: Icon(Icons.image, color: Theme.of(context).primaryColor),
@@ -227,14 +232,14 @@ class _ClassifyState extends State<Classify> with TickerProviderStateMixin {
       return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          children: const [
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(8.0),
               child: Icon(Icons.image, size: 100.0, color: Colors.grey),
             ),
             Center(
                 child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(8.0),
               child: Text('No Image',
                   style: TextStyle(
                       fontSize: 20.0,
